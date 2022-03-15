@@ -90,7 +90,17 @@ func main() {
 	router := mux.NewRouter()
 	router.Use(loggingMiddleware(l))
 	router.HandleFunc("/version", func(w http.ResponseWriter, _ *http.Request) {
-		w.Write([]byte(`{}`))
+		data, err := os.ReadFile(filepath.Join(o.baseDir, "version.json"))
+		if err != nil {
+			w.Write([]byte(`{}`))
+			if os.IsNotExist(err) {
+				l.Info("no version file found")
+			} else {
+				l.Error("failed to read version file, defaulting to empty")
+			}
+			return
+		}
+		w.Write(data)
 	})
 	router.HandleFunc("/api", func(w http.ResponseWriter, _ *http.Request) {
 		d := metav1.APIVersions{TypeMeta: metav1.TypeMeta{Kind: "APIVersions"}, Versions: []string{"v1"}}
